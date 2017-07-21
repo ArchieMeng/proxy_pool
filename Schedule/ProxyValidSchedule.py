@@ -13,6 +13,7 @@
 __author__ = 'JHao'
 
 import sys
+from time import sleep
 
 sys.path.append('../')
 
@@ -50,6 +51,7 @@ class ProxyValidSchedule(ProxyManager):
                 if value and int(value) < -5:
                     # 计数器小于-5删除该代理
                     self.db.delete(each_proxy)
+            sleep(300)
         self.log.info('validProxy_a running normal')
 
     def main(self):

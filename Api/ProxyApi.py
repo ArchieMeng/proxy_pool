@@ -29,6 +29,7 @@ api_list = {
     'refresh': u'refresh proxy pool',
     'get_all': u'get all proxy from proxy pool',
     'delete?proxy=127.0.0.1:8080': u'delete an unable proxy',
+    'get_status': u'get current status of proxies fetched and available in DB'
 }
 
 
@@ -71,7 +72,7 @@ def get_status():
 
 
 def run():
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=10809)
 
 if __name__ == '__main__':
     run()

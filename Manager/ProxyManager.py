@@ -13,6 +13,9 @@
 """
 __author__ = 'JHao'
 
+import sys
+sys.path.append('..')
+
 from DB.DbClient import DbClient
 from Util.GetConfig import GetConfig
 from Util.LogHandler import LogHandler

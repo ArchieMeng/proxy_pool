@@ -14,16 +14,15 @@
 """
 import re
 import requests
+from bs4 import BeautifulSoup
+import sys
 
 try:
     from importlib import reload   #py3 实际不会实用，只是为了不显示语法错误
 except:
-    import sys     # py2
     reload(sys)
     sys.setdefaultencoding('utf-8')
-
-
-
+sys.path.append('..')
 
 from Util.utilFunction import robustCrawl, getHtmlTree, getHTMLText
 
@@ -49,7 +48,7 @@ class GetFreeProxy(object):
         pass
 
     @staticmethod
-    @robustCrawl    #decoration print error if exception happen
+    @robustCrawl    # decoration print error if exception happen
     def freeProxyFirst(page=10):
         """
         抓取快代理IP http://www.kuaidaili.com/
@@ -60,10 +59,15 @@ class GetFreeProxy(object):
         # 页数不用太多， 后面的全是历史IP， 可用性不高
 
         for url in url_list:
-            tree = getHtmlTree(url)
-            proxy_list = tree.xpath('.//div[@id="index_free_list"]//tbody/tr')
+            content = requests.request(method='get', url=url, headers=HEADER).content
+            soup = BeautifulSoup(content, 'lxml')
+            proxy_list = soup.find_all('tr')
             for proxy in proxy_list:
-                yield ':'.join(proxy.xpath('./td/text()')[0:2])
+                ip = proxy.find('td', {'data-title': 'IP'})
+                port = proxy.find('td', {'data-title': 'PORT'})
+                if ip and port:
+                    yield ip.text + ':' + port.text
+
 
     @staticmethod
     @robustCrawl
@@ -77,8 +81,9 @@ class GetFreeProxy(object):
             proxy_number)
 
         html = getHTMLText(url, headers=HEADER)
-        for proxy in re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}', html):
-            yield proxy
+        if html:
+            for proxy in re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})<br />', html):
+                yield proxy
 
     @staticmethod
     @robustCrawl
@@ -116,32 +121,42 @@ class GetFreeProxy(object):
 
     @staticmethod
     @robustCrawl
-    def freeProxyFifth():
+    def freeProxyFifth(page=10):
         """
         抓取guobanjia http://www.goubanjia.com/free/gngn/index.shtml
         :return:
         """
         url = "http://www.goubanjia.com/free/gngn/index{page}.shtml"
-        for page in range(1, 10):
-            page_url = url.format(page=page)
-            tree = getHtmlTree(page_url)
-            proxy_list = tree.xpath('//td[@class="ip"]')
+        for idx in range(1, page + 1):
+            page_url = url.format(page=idx)
+            content = requests.request(method='get', url=page_url, headers=HEADER).text
+            soup = BeautifulSoup(content, 'lxml')
+            proxy_list = soup.find_all('td', class_='ip')
             for each_proxy in proxy_list:
-                yield ''.join(each_proxy.xpath('.//text()'))
+                yield ''.join([
+                    _.string
+                    for _ in each_proxy.children
+                    if ("display: none;" not in str(_) and "display:none;" not in str(_)) and _.string
+                ])
 
 if __name__ == '__main__':
     gg = GetFreeProxy()
-    # for e in gg.freeProxyFirst():
-    #     print e
+    print('proxy1:')
+    for e in gg.freeProxyFirst(1):
+        print e
 
-    # for e in gg.freeProxySecond():
-    #     print e
+    print('proxy2:')
+    for e in gg.freeProxySecond():
+        print e
 
-    # for e in gg.freeProxyThird():
-    #     print e
-    #
-    # for e in gg.freeProxyFourth():
-    #     print e
+    #print('proxy3:')
+    #for e in gg.freeProxyThird():
+    #    print e
 
-    for e in gg.freeProxyFifth():
-        print(e)
+    print('proxy4:')
+    for e in gg.freeProxyFourth():
+        print e
+
+    print("proxy5:")
+    for e in gg.freeProxyFifth(1):
+        print e
