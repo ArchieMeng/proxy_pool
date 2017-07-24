@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import sys
+from multiprocessing import Process
+
 """
 -------------------------------------------------
    File Name：     main.py  
@@ -11,10 +14,6 @@
 -------------------------------------------------
 """
 __author__ = 'JHao'
-
-import sys
-from multiprocessing import Process
-
 sys.path.append('../')
 
 from Api.ProxyApi import run as ProxyApiRun
@@ -31,7 +30,10 @@ def run():
     p3 = Process(target=RefreshRun, name='RefreshRun')
     p_list.append(p3)
     for p in p_list:
+        p.daemon = True
         p.start()
+        with open(p.name + '.pid', 'w') as pid_file:
+            pid_file.write(str(p.pid))
     for p in p_list:
         p.join()
 

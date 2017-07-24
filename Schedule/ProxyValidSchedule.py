@@ -20,39 +20,53 @@ sys.path.append('../')
 from Util.utilFunction import validUsefulProxy
 from Manager.ProxyManager import ProxyManager
 from Util.LogHandler import LogHandler
+from Queue import Queue
+from threading import Thread
+
+MAX_THREADS = 20
+proxies_queue = Queue(maxsize=MAX_THREADS)
 
 
 class ProxyValidSchedule(ProxyManager):
     def __init__(self):
         ProxyManager.__init__(self)
         self.log = LogHandler('valid_schedule')
+        self.db.changeTable(self.useful_proxy_queue)
 
     def __validProxy(self):
         """
         验证代理
         :return:
         """
-        while True:
-            self.db.changeTable(self.useful_proxy_queue)
-            for each_proxy in self.db.getAll():
-                if isinstance(each_proxy, bytes):
-                    each_proxy = each_proxy.decode('utf-8')
+        def valid_proxy_in_queue():
+            while True:
+                proxy = proxies_queue.get()
+                if isinstance(proxy, bytes):
+                    proxy = proxy.decode('utf-8')
 
-                if validUsefulProxy(each_proxy):
-                    # 成功计数器加1
-                    self.db.inckey(each_proxy, 1)
-                    self.log.debug('validProxy_b: {} validation pass'.format(each_proxy))
+                if validUsefulProxy(proxy):
+                    # 成功->计数器加1
+                    self.db.inckey(proxy, 1)
+                    self.log.debug('validProxy_b: {} validation pass'.format(proxy))
                 else:
-                    # 失败计数器减一
-                    self.db.inckey(each_proxy, -1)
-                    # self.db.delete(each_proxy)
-                    self.log.info('validProxy_b: {} validation fail'.format(each_proxy))
-                value = self.db.getvalue(each_proxy)
+                    # 失败->计数器减一
+                    self.db.inckey(proxy, -1)
+                    # self.db.delete(proxy)
+                    self.log.info('validProxy_b: {} validation fail'.format(proxy))
+                value = self.db.getvalue(proxy)
                 if value and int(value) < -5:
                     # 计数器小于-5删除该代理
-                    self.db.delete(each_proxy)
+                    self.db.delete(proxy)
+
+        for i in range(MAX_THREADS):
+            thread = Thread(target=valid_proxy_in_queue)
+            thread.daemon = True
+            thread.start()
+
+        while True:
+            for each_proxy in self.db.getAll():
+                proxies_queue.put(each_proxy)
             sleep(300)
-        self.log.info('validProxy_a running normal')
 
     def main(self):
         self.__validProxy()

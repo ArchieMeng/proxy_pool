@@ -15,10 +15,11 @@ import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
+import Util
 from Util.LogHandler import LogHandler
+from ProxyGetter.getFreeProxy import test_url
 
-logger = LogHandler(__name__)
+logger = LogHandler(__name__, level=Util.LogHandler.INFO)
 
 
 def getHTMLText(url, headers={'user': 'Mozilla/5.0'}):
@@ -85,8 +86,8 @@ def validUsefulProxy(proxy):
     """
     proxies = {"https": "https://{proxy}".format(proxy=proxy)}
     try:
-        # 超过20秒的代理就不要了
-        r = requests.get('https://www.baidu.com', proxies=proxies, timeout=40, verify=False)
+        # 超过4秒的代理就不要了
+        r = requests.get(test_url, proxies=proxies, timeout=4, verify=False)
         if r.status_code == 200:
             logger.debug('%s is ok' % proxy)
             return True

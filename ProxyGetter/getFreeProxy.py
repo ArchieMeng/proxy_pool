@@ -23,6 +23,7 @@ except:
     reload(sys)
     sys.setdefaultencoding('utf-8')
 sys.path.append('..')
+test_url = "https://mainsite-restapi.ele.me/shopping/restaurant/155154177?extras[]=activities"
 
 from Util.utilFunction import robustCrawl, getHtmlTree, getHTMLText
 
@@ -41,7 +42,7 @@ HEADER = {'Connection': 'keep-alive',
 
 class GetFreeProxy(object):
     """
-    proxy getter
+    proxy getterf
     """
 
     def __init__(self):
@@ -140,23 +141,68 @@ class GetFreeProxy(object):
                 ])
 
 if __name__ == '__main__':
+    from collections import Counter
+    from time import time, sleep
+    from threading import Thread
     gg = GetFreeProxy()
-    print('proxy1:')
-    for e in gg.freeProxyFirst(1):
-        print e
 
-    print('proxy2:')
-    for e in gg.freeProxySecond():
-        print e
+    def debug_proxies(proxy):
+        if proxy:
+            try:
+                t1 = time()
+                response = requests.get(url=test_url, proxies={'https': proxy}, timeout=10)
+                fetch_times.append(int(time() - t1))
+            except Exception as e:
+                print e
+                fetch_times.append(None)
+    counter = Counter()
+    for i in range(100):
+        fetch_times = []
+        threads = []
+        print('proxy1:')
+        for proxy in gg.freeProxyFirst(1):
+            # print proxy
+            thread = Thread(target=debug_proxies, args=(proxy,))
+            threads.append(thread)
+            thread.start()
 
-    #print('proxy3:')
-    #for e in gg.freeProxyThird():
-    #    print e
+        print('proxy2:')
+        for proxy in gg.freeProxySecond():
+            # print proxy
+            thread = Thread(target=debug_proxies, args=(proxy,))
+            threads.append(thread)
+            thread.start()
 
-    print('proxy4:')
-    for e in gg.freeProxyFourth():
-        print e
+        #print('proxy3:')
+        #for e in gg.freeProxyThird():
+        #    print e
 
-    print("proxy5:")
-    for e in gg.freeProxyFifth(1):
-        print e
+        print('proxy4:')
+        for proxy in gg.freeProxyFourth():
+            # print proxy
+            thread = Thread(target=debug_proxies, args=(proxy,))
+            threads.append(thread)
+            thread.start()
+
+        print("proxy5:")
+        for proxy in gg.freeProxyFifth(1):
+            # print proxy
+            thread = Thread(target=debug_proxies, args=(proxy,))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        cur_counter = Counter(fetch_times)
+        counter += cur_counter
+        for key in sorted(cur_counter.keys()):
+            print "time:", key, "count:", cur_counter[key]
+            with open("proxy_statistics_{}.csv".format(i), 'a') as wf:
+                wf.write('{},{}\n'.format(key, cur_counter[key]))
+        sleep(60)
+
+    for key in sorted(counter.keys()):
+        print "time:", key, "count:", counter[key]
+        with open("proxy_statistics_all.csv", 'a') as wf:
+            wf.write('{},{}\n'.format(key, counter[key]))
